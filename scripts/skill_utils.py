@@ -55,36 +55,14 @@ def parse_skill(path: Path) -> Skill:
     except StopIteration as exc:
         raise SkillFormatError("le frontmatter YAML n'est pas fermé") from exc
 
-    frontmatter = lines[1:end]
     fields: dict[str, str] = {}
-    index = 0
-    while index < len(frontmatter):
-        line = frontmatter[index]
-        if not line.strip() or line.lstrip().startswith("#") or line[:1].isspace():
-            index += 1
+    for line in lines[1:end]:
+        if not line.strip() or line.lstrip().startswith("#"):
             continue
         if ":" not in line:
             raise SkillFormatError(f"ligne de frontmatter invalide : {line!r}")
-
         key, value = line.split(":", 1)
-        key = key.strip()
-        value = value.strip()
-        if value in {"|", ">"}:
-            folded = value == ">"
-            block_lines: list[str] = []
-            index += 1
-            while index < len(frontmatter):
-                continuation = frontmatter[index]
-                if continuation and not continuation[:1].isspace():
-                    break
-                block_lines.append(continuation.strip())
-                index += 1
-            separator = " " if folded else "\n"
-            fields[key] = separator.join(block_lines).strip()
-            continue
-
-        fields[key] = parse_scalar(value)
-        index += 1
+        fields[key.strip()] = parse_scalar(value)
 
     missing = [key for key in ("name", "description") if not fields.get(key)]
     if missing:
